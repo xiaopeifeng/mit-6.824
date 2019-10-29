@@ -15,6 +15,7 @@ func doMap(
 	mapF func(filename string, contents string) []KeyValue,
 ) {
 	contents, err := ioutil.ReadFile(inFile)
+
 	if err != nil {
 		debug("Fail to read file %s, %s", inFile, err)
 		return
