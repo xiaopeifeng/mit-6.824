@@ -32,7 +32,7 @@ func doReduce(
 
 			kvs[kv.Key] = append(kvs[kv.Key], kv.Value)
 		}
-		file.Close()
+		_ = file.Close()
 	}
 
 	ofile, err := os.Create(outFile)
@@ -46,7 +46,7 @@ func doReduce(
 		encoder.Encode(KeyValue{key, reduceF(key, val) })
 	}
 
-	ofile.Close()
+	_ = ofile.Close()
 	//
 	// doReduce manages one reduce task: it should read the intermediate
 	// files for the task, sort the intermediate key/value pairs by key,
