@@ -1,2 +1,2 @@
 # mit-6.824
-le
+https://pdos.csail.mit.edu/6.824/
