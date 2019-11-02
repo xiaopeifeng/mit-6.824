@@ -2,7 +2,6 @@ package mapreduce
 
 import (
 	"fmt"
-	"sync"
 )
 
 //
@@ -26,21 +25,45 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 		n_other = len(mapFiles)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(mapFiles))
+	debug("Total %d files", len(mapFiles))
+	workerPoolChan := make(chan string, ntasks)
+
+	finish_count := make(chan int)
 
 	for i, file := range mapFiles {
-		worker := <- registerChan
-		debug("work %s is idle now, will process file %s", worker, file)
-		go func(n int, filename string) {
-			defer wg.Done()
-			call(worker, "Worker.DoTask",
-				DoTaskArgs{jobName, filename, phase, i, n_other},
+		i := i
+		file := file
+	  	go func() {
+	  		addr := <- workerPoolChan
+	  		debug("file %s task push to worker %s", file, addr)
+			call(addr, "Worker.DoTask",
+				DoTaskArgs{jobName, file, phase, i, n_other},
 				new(struct{}))
-		}(i, file)
+	  		workerPoolChan <- addr
+	  		finish_count <- 1
+	  	}()
 	}
 
-	wg.Wait()
+	w := <- registerChan
+	workerPoolChan <- w
+
+	current := 0
+	for {
+		var w string
+		select {
+		case w = <- registerChan :
+			debug("new worker found: %s", w)
+			workerPoolChan <- w
+		default:
+			debug("non new worker registered")
+		}
+
+		<-finish_count
+		current += 1;
+		if current == len(mapFiles) {
+			break
+		}
+	}
 
 	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, n_other)
 
