@@ -28,7 +28,7 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 	debug("Total %d files", len(mapFiles))
 	workerPoolChan := make(chan string, ntasks)
 
-	finish_count := make(chan int)
+	workerFin := make(chan int)
 
 	for i, file := range mapFiles {
 		i := i
@@ -40,12 +40,9 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 				DoTaskArgs{jobName, file, phase, i, n_other},
 				new(struct{}))
 	  		workerPoolChan <- addr
-	  		finish_count <- 1
+	  		workerFin <- 1
 	  	}()
 	}
-
-	w := <- registerChan
-	workerPoolChan <- w
 
 	current := 0
 	for {
@@ -54,12 +51,10 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 		case w = <- registerChan :
 			debug("new worker found: %s", w)
 			workerPoolChan <- w
-		default:
-			debug("non new worker registered")
+		case <- workerFin:
+			current += 1;
 		}
 
-		<-finish_count
-		current += 1;
 		if current == len(mapFiles) {
 			break
 		}
