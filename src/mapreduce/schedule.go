@@ -34,13 +34,21 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 		i := i
 		file := file
 	  	go func() {
-	  		addr := <- workerPoolChan
-	  		debug("file %s task push to worker %s", file, addr)
-			call(addr, "Worker.DoTask",
-				DoTaskArgs{jobName, file, phase, i, n_other},
-				new(struct{}))
-	  		workerPoolChan <- addr
-	  		workerFin <- 1
+			for {
+				addr := <- workerPoolChan
+				debug("file %s task push to worker %s", file, addr)
+				sucess := call(addr, "Worker.DoTask",
+					DoTaskArgs{jobName, file, phase, i, n_other},
+					new(struct{}))
+
+				if sucess {
+					workerPoolChan <- addr
+					workerFin <- 1
+					break
+				} else {
+					debug("rpc worker failed to process file %s", file)
+				}
+			}
 	  	}()
 	}
 
