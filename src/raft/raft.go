@@ -269,7 +269,7 @@ func (rf *Raft) AppendEntries(args *AppendEntryArgs, reply *AppendEntryReply) {
 	if args.Term > rf.currentTerm {
 		rf.changeToFollower()
 		rf.currentTerm = args.Term
-		rf.votedFor = args.Term
+		rf.votedFor = args.LeaderId
 		reply.Success = true
 		reply.Term = rf.currentTerm
 		return
